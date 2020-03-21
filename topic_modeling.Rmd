@@ -1,0 +1,135 @@
+---
+title: "Text Mining of Taylor Swift Lyrics"
+author: "Carson Zhang (cxzhang4)"
+date: "3/20/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(tidyverse)
+library(tidytext)
+library(gridExtra)
+```
+
+```{r}
+ts_lyrics = read_csv("data/taylor_swift_lyrics.csv")
+ts_lyrics_tidy = ts_lyrics %>% unnest_tokens(word, lyric)
+```
+
+```{r}
+# albums = unique(ts_lyrics$album)
+# album_years = vector(mode = "list", length = length(albums))
+# 
+# names(album_years) = albums
+# 
+# album_years["Taylor Swift"] = 2006
+# album_years["Fearless"] = 2008
+# album_years["Speak Now"] = 2010
+# album_years["Red"] = 2012
+# album_years["1989"] = 2014
+# album_years["reputation"] = 2017
+```
+
+## Sentiment Analysis
+
+```{r}
+ts_afinn = ts_lyrics_tidy %>%
+  inner_join(get_sentiments("afinn")) %>%
+  group_by(index = album) %>%
+  summarise(sentiment = sum(value)) %>%
+  mutate(method = "AFINN")
+
+ts_bing_and_nrc = bind_rows(ts_lyrics_tidy %>%
+                              inner_join(get_sentiments("bing")) %>%
+                              mutate(method = "Bing et al."),
+                            ts_lyrics_tidy %>% 
+                              inner_join(get_sentiments("nrc")) %>%
+                                filter(sentiment %in% c("positive", "negative")) %>%
+                              mutate(method = "NRC")) %>%
+  count(method, index = album, sentiment) %>%
+  spread(sentiment, n, fill = 0) %>%
+  mutate(sentiment = positive - negative)
+
+albums_in_order = c("Taylor Swift", "Fearless", "Speak Now", "Red", "1989", "reputation")
+
+# order albums by release date
+ts_all_lexicons = bind_rows(ts_afinn, ts_bing_and_nrc) %>%
+  mutate(index, index = factor(index, levels = albums_in_order, ordered = TRUE)) %>%
+  arrange(index)
+```
+
+```{r}
+ts_all_lexicons %>%
+  ggplot(aes(index, sentiment, fill = method)) +
+  geom_col(show.legend = FALSE) + 
+  facet_wrap(~method, ncol = 1, scales = "free_y") +
+  ggtitle("Sentiment of Taylor Swift albums over time")
+```
+
+**NRC** agrees quite closely with **AFINN**. **Bing** gives quite different results.
+
+Overall consensus is that *Red* is the most positive. *1989* is to be the least positive (in fact, it is the only one that had an overall negative sentiment using the **Bing** lexicon).
+
+Let's drill down to the song level. We'll go album-by-album.
+
+```{r}
+get_album_lyrics = function(album_name) {
+  ts_lyrics %>% filter(album == album_name) %>% return()
+}
+
+album_lyrics = lapply(albums_in_order, get_album_lyrics)
+names(album_lyrics) = albums_in_order
+
+album_lyrics_tidy = lapply(album_lyrics, unnest_tokens, word, lyric)
+names(album_lyrics_tidy) = albums_in_order
+```
+
+```{r}
+calc_sentiments_by_song = function(album_tidy) {
+  sentiments_afinn = album_tidy %>%
+    inner_join(get_sentiments("afinn")) %>%
+    group_by(index = track_title) %>%
+    summarise(sentiment = sum(value)) %>%
+    mutate(method = "AFINN")
+  
+  sentiments_bing_and_nrc = bind_rows(album_tidy %>% 
+                                        inner_join(get_sentiments("bing")) %>%
+                                        mutate(method = "Bing et al."),
+                                      album_tidy %>%
+                                        inner_join(get_sentiments("nrc")) %>%
+                                        mutate(method = "NRC")) %>%
+    count(method, index = track_title, sentiment) %>%
+    spread(sentiment, n, fill = 0) %>%
+    mutate(sentiment = positive - negative)
+  
+  sentiments_all_lex = bind_rows(sentiments_afinn, sentiments_bing_and_nrc)
+  
+  sentiments_all_lex
+}
+
+plot_sentiments_by_song = function(sentiments_by_song) {
+  sentiment_plot <- sentiments_by_song %>%
+    ggplot(aes(index, sentiment, fill = method)) +
+    geom_col(show.legend = FALSE) + 
+    facet_wrap(~method, ncol = 1, scales = "free_y")
+  
+  sentiment_plot
+}
+```
+
+```{r}
+album_sentiments_by_song = lapply(album_lyrics_tidy, calc_sentiments_by_song)
+sentiment_plots = lapply(album_sentiments_by_song, plot_sentiments_by_song)
+
+n_albums = length(albums_in_order)
+n_col = floor(sqrt(n_albums))
+
+grid.arrange(grobs = sentiment_plots, ncol = n_col)
+```
+
+
+

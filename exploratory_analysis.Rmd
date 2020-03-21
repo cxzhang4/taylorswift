@@ -1,0 +1,19 @@
+---
+title: "Exploratory Analysis"
+author: "Carson Zhang (cxzhang4)"
+date: "8/5/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+lyrics = read.csv("data/taylor_swift_lyrics.csv", stringsAsFactors = FALSE)
+```
+
+```{r}
+head(lyrics)
+```
+
