@@ -72,7 +72,7 @@ ts_all_lexicons %>%
 
 **NRC** agrees quite closely with **AFINN**. **Bing** gives quite different results.
 
-Overall consensus is that *Red* is the most positive. *1989* is to be the least positive (in fact, it is the only one that had an overall negative sentiment using the **Bing** lexicon).
+Overall consensus is that *Red* is the most positive. *1989* is the least positive (in fact, it is the only one that had an overall negative sentiment using the **Bing** lexicon).
 
 Let's drill down to the song level. We'll go album-by-album.
 
@@ -122,13 +122,28 @@ plot_sentiments_by_song = function(sentiments_by_song) {
 ```
 
 ```{r}
-album_sentiments_by_song = lapply(album_lyrics_tidy, calc_sentiments_by_song)
-sentiment_plots = lapply(album_sentiments_by_song, plot_sentiments_by_song)
+# album_sentiments_by_song = lapply(album_lyrics_tidy, calc_sentiments_by_song)
+# sentiment_plots = lapply(album_sentiments_by_song, plot_sentiments_by_song)
 
-n_albums = length(albums_in_order)
-n_col = floor(sqrt(n_albums))
+# n_albums = length(albums_in_order)
+# n_col = floor(sqrt(n_albums))
+# 
+# grid.arrange(grobs = sentiment_plots, ncol = n_col)
 
-grid.arrange(grobs = sentiment_plots, ncol = n_col)
+# album_lyrics_tidy[[6]] %>% calc_sentiments_by_song() %>% plot_sentiments_by_song()
+
+split_album = function(album, max_group_size) {
+  album_sections = album %>% 
+    group_by(track_n %/% max_group_size) %>%
+    nest %>%
+    pull(data)
+  
+  album_sections
+}
+
+album_lyrics_tidy_split = lapply(album_lyrics_tidy, split_album, 3)
+
+lapply(album_lyrics_tidy_split[[4]], calc_sentiments_by_song) %>% lapply(plot_sentiments_by_song)
 ```
 
 
