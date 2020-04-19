@@ -1,0 +1,390 @@
+---
+title: "Comparison with Other Artists"
+author: "Carson Zhang (cxzhang4)"
+date: "4/13/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(genius)
+library(tidyverse)
+library(tidytext)
+library(gridExtra)
+library(broom)
+```
+
+```{r}
+# artist_albums <- tribble(
+#  ~artist, ~album,
+#  "Taylor Swift", "Taylor Swift",
+#  "Taylor Swift", "Fearless",
+#  "Taylor Swift", "Speak Now",
+#  "Taylor Swift", "Red",
+#  "Taylor Swift", "1989",
+#  "Taylor Swift", "reputation",
+#  "Taylor Swift", "Lover",
+#  "Beyonce", "Dangerously in Love",
+#  "Beyonce", "B'Day",
+#  "Beyonce", "I Am... Sasha Fierce",
+#  "Beyonce", "4",
+#  "Beyonce", "Beyonce",
+#  "Beyonce", "Lemonade",
+#  "Britney Spears", "...Baby One More Time",
+#  "Britney Spears", "Oops!... I Did It Again",
+#  "Britney Spears", "Britney",
+#  "Britney Spears", "In the Zone",
+#  "Britney Spears", "Blackout",
+#  "Britney Spears", "Circus",
+#  "Britney Spears", "Femme Fatale",
+#  "Britney Spears", "Britney Jean",
+#  "Britney Spears", "Glory",
+#  "Nicki Minaj", "Pink Friday",
+#  "Nicki Minaj", "Pink Friday: Roman Reloaded",
+#  "Nicki Minaj", "The Pinkprint",
+#  "Nicki Minaj", "Queen",
+#  "Adele", "19",
+#  "Adele", "21",
+#  "Adele", "25",
+#  "Katy Perry", "Katy Hudson",
+#  "Katy Perry", "One of the Boys",
+#  "Katy Perry", "Teenage Dream",
+#  "Katy Perry", "Prism",
+#  "Katy Perry", "Witness",
+#  "Lady Gaga", "The Fame Monster",
+#  "Lady Gaga", "Born This Way",
+#  "Lady Gaga", "Artpop",
+#  "Lady Gaga", "Joanne",
+#  "Lady Gaga", "Chromatica",
+#  "Mariah Carey", "Mariah Carey",
+#  "Mariah Carey", "Emotions",
+#  "Mariah Carey", "Music Box",
+#  "Mariah Carey", "Daydream",
+#  "Mariah Carey", "Butterfly",
+#  "Mariah Carey", "Rainbow",
+#  "Mariah Carey", "Glitter",
+#  "Mariah Carey", "Charmbracelet",
+#  "Mariah Carey", "The Emancipation of Mimi",
+#  "Mariah Carey", "E=MC2",
+#  "Mariah Carey", "Memoirs of an Imperfect Angel",
+#  "Mariah Carey", "Me. I Am Mariah... The Elusive Chanteuse",
+#  "Mariah Carey", "Caution",
+#  "Whitney Houston", "Whitney Houston",
+#  "Whitney Houston", "Whitney",
+#  "Whitney Houston", "I'm Your Baby Tonight",
+#  "Whitney Houston", "My Love Is Your Love",
+#  "Whitney Houston", "Just Whitney...",
+#  "Whitney Houston", "I Look to You",
+#  "Celine Dion", "Unison",
+#  "Celine Dion", "Celine Dion",
+#  "Celine Dion", "The Colour of My Love",
+#  "Celine Dion", "Falling into You",
+#  "Celine Dion", "Let's Talk About Love",
+#  "Celine Dion", "These Are Special Times",
+#  "Celine Dion", "A New Day Has Come",
+#  "Celine Dion", "One Heart",
+#  "Celine Dion", "Miracle",
+#  "Celine Dion", "Taking Chances",
+#  "Celine Dion", "Loved Me Back to Life",
+#  "Celine Dion", "Courage",
+#  "Madonna", "Madonna",
+#  "Madonna", "Like a Virgin",
+#  "Madonna", "True Blue",
+#  "Madonna", "Like a Prayer",
+#  "Madonna", "Erotica",
+#  "Madonna", "Bedtime Stories",
+#  "Madonna", "Ray of Light",
+#  "Madonna", "Music",
+#  "Madonna", "American Life",
+#  "Madonna", "Confessions on a Dance Floor",
+#  "Madonna", "Hard Candy",
+#  "Madonna", "MDNA",
+#  "Madonna", "Rebel Heart",
+#  "Madonna", "Madame X",
+ # "Rihanna", "Music of the Sun",
+ # "Rihanna", "A Girl like Me",
+ # "Rihanna", "Good Girl Gone Bad: Reloaded",
+ # "Rihanna", "Rated R",
+ # "Rihanna", "Loud",
+ # "Rihanna", "Talk That Talk",
+ # "Rihanna", "Unapologetic",
+ # "Rihanna", "Anti"
+# )
+
+# artist_albums = tribble(
+#         ~artist, ~album,
+#         "Taylor Swift", "Lover"
+# )
+
+
+# female_pop_star_lyrics = artist_albums %>%
+#  add_genius(artist, album)
+
+# write_csv(female_pop_star_lyrics, "female_pop_star_lyrics.csv")
+```
+
+```{r}
+# rihanna_albums = tribble(
+#   ~artist, ~album,
+#  "Rihanna", "Music of the Sun",
+#  "Rihanna", "A Girl like Me",
+#  "Rihanna", "Good Girl Gone Bad: Reloaded",
+#  "Rihanna", "Rated R",
+#  "Rihanna", "Loud",
+#  "Rihanna", "Talk That Talk",
+#  "Rihanna", "Unapologetic",
+#  "Rihanna", "Anti"
+# )
+# 
+# rihanna_lyrics = rihanna_albums %>%
+#   add_genius(artist, album)
+# 
+# female_pop_star_lyrics = bind_rows(female_pop_star_lyrics, rihanna_lyrics)
+# 
+# write_csv(female_pop_star_lyrics, "female_pop_star_lyrics.csv")
+```
+
+
+```{r}
+female_pop_star_lyrics = read_csv("female_pop_star_lyrics.csv")
+
+fps_lyrics_tidy = female_pop_star_lyrics %>% unnest_tokens(word, lyric)
+```
+
+```{r}
+fps_afinn = fps_lyrics_tidy %>%
+  inner_join(get_sentiments("afinn")) %>%
+  group_by(index = track_title) %>%
+  summarise(sentiment = sum(value)) %>%
+  mutate(method = "AFINN")
+
+fps_bing_and_nrc = bind_rows(fps_lyrics_tidy %>%
+                              inner_join(get_sentiments("bing")) %>%
+                              mutate(method = "Bing"),
+                            fps_lyrics_tidy %>% 
+                              inner_join(get_sentiments("nrc")) %>%
+                                filter(sentiment %in% c("positive", "negative")) %>%
+                              mutate(method = "NRC")) %>%
+  count(method, index = track_title, sentiment) %>%
+  spread(sentiment, n, fill = 0) %>%
+  mutate(sentiment = positive - negative)
+
+#
+fps_all = bind_rows(fps_afinn, fps_bing_and_nrc)
+```
+
+```{r}
+# fps_all_by_song = fps_all %>%
+#         group_by(track_title) %>%
+#         summarise(sentiment = sum())
+
+artists_albums = female_pop_star_lyrics %>% select(artist, track_title) %>% distinct()
+
+fps_all = fps_all %>% inner_join(artists_albums, by = c("index" = "track_title"))
+
+afinn_pivoted = fps_all %>% filter(method == "AFINN") %>% pivot_wider(names_from = method, values_from = sentiment)
+bing_pivoted = fps_all %>% filter(method == "Bing") %>% pivot_wider(names_from = method, values_from = sentiment)
+nrc_pivoted = fps_all %>% filter(method == "NRC") %>% pivot_wider(names_from = method, values_from = sentiment)
+
+# why doesn't this work when we only join by index (track title)?
+fps_pivoted = afinn_pivoted %>% inner_join(bing_pivoted, by = c("index", "artist")) %>% inner_join(nrc_pivoted, by = c("index", "artist"))
+
+fps_pivoted %>% count(artist)
+```
+
+```{r}
+# fps_stand = fps_pivoted %>% select(index, artist, AFINN, Bing, NRC) %>% mutate_if(is.numeric, scale)
+fps_stand = fps_pivoted %>% select(index, artist, AFINN, Bing, NRC)
+
+fps_kmeans = fps_stand %>% select(AFINN, Bing, NRC)
+```
+
+```{r}
+k_vals = 1:9
+
+kclusts_fps <- tibble(k = 1:9) %>%
+  mutate(
+    kclust = map(k, ~kmeans(fps_kmeans, .x)),
+    tidied = map(kclust, tidy),
+    glanced = map(kclust, glance),
+    augmented = map(kclust, augment, fps_kmeans)
+  )
+
+kclusts_fps
+```
+
+```{r}
+clusters <- kclusts_fps %>%
+  unnest(tidied)
+
+assignments <- kclusts_fps %>% 
+  unnest(augmented)
+
+clusterings <- kclusts_fps %>%
+  unnest(glanced, .drop = TRUE)
+```
+
+```{r}
+ggplot(clusterings, aes(k, tot.withinss)) +
+  geom_line()
+```
+
+Gonna say `k` = 4 is the most appropriate elbow.
+
+```{r}
+kclust_5 = assignments %>% filter(k == 4)
+kclust_5$kclust[[1]]
+```
+
+There are two interesting clusters (changes every time I run this). Cluster 2 is extreme, cluster 3 is more negative than average.
+
+Let's measure the proportion of discography in each of these clusters.
+
+```{r}
+kclust_5_aug_tbl = kclusts_fps$augmented[[4]]
+
+fps_stand_aug = fps_stand %>% mutate(cluster = kclust_5_aug_tbl$.cluster)
+```
+
+```{r}
+fps_stand_aug %>% filter(cluster %in% c(4)) %>% count(artist)
+```
+
+```{r}
+cluster_2_artists = fps_stand_aug %>% filter(cluster == 2) %>% count(artist)
+cluster_3_artists = fps_stand_aug %>% filter(cluster == 3) %>% count(artist)
+```
+
+
+```{r}
+# number of Taylor Swift songs
+female_pop_star_lyrics %>% filter(artist == "Taylor Swift") %>% select(track_title) %>% unique(margin = 2) %>% nrow()
+```
+
+```{r}
+artist_song_counts = fps_stand_aug %>% count(artist)
+```
+
+```{r}
+cluster_2_artists = cluster_2_artists %>% inner_join(artist_song_counts, by = "artist") %>% mutate(prop = n.x / n.y)
+cluster_3_artists = cluster_3_artists %>% inner_join(artist_song_counts, by = "artist") %>% mutate(prop = n.x / n.y)
+
+cluster_2_artists = cluster_2_artists %>% mutate(highlight = ifelse(artist == "Taylor Swift", "yes", "no"))
+cluster_3_artists = cluster_3_artists %>% mutate(highlight = ifelse(artist == "Taylor Swift", "yes", "no"))
+```
+
+```{r}
+artist_highlight_bar = function() {
+        list(geom_bar(stat = "identity"),
+             coord_flip(),
+             scale_fill_manual(values = c("yes" = "tomato", "no" = "gray"), guide = FALSE)
+        )
+}
+
+prop_aes = aes(x = reorder(artist, prop), y = prop, fill = highlight)
+n_aes = aes(x = reorder(artist, n.x), y = n.x, fill = highlight)
+```
+
+```{r}
+# cluster_2_artists %>%
+#         ggplot(prop_aes) +
+#         artist_highlight_bar()
+```
+
+```{r}
+# cluster_2_artists %>%
+#         ggplot(n_aes) +
+#         artist_highlight_bar()
+```
+
+```{r}
+# cluster_3_artists %>%
+#         ggplot(prop_aes) +
+#         artist_highlight_bar()
+```
+
+```{r}
+# cluster_3_artists %>%
+#         ggplot(n_aes) +
+#         artist_highlight_bar()
+```
+
+```{r}
+fps_totals = fps_stand %>% 
+  group_by(artist) %>% 
+  summarise(AFINN_total = sum(AFINN), Bing_total = sum(Bing), NRC_total = sum(NRC))
+
+fps_props = fps_totals %>%
+  inner_join(artist_song_counts, by = "artist") %>% 
+  mutate(AFINN_rate = AFINN_total / n, 
+         Bing_rate = Bing_total / n, 
+         NRC_rate = NRC_total / n)
+```
+
+```{r}
+highlight_artist = function(df, artist_name) {
+  df %>% 
+    mutate(highlight = ifelse(artist == artist_name, "yes", "no")) %>%
+    return()
+}
+
+fps_props %>%
+  highlight_artist("Taylor Swift") %>%
+  ggplot(aes(x = reorder(artist, AFINN_rate), y = AFINN_rate, fill = highlight)) +
+  artist_highlight_bar()
+```
+
+```{r}
+fps_props %>%
+  highlight_artist("Taylor Swift") %>%
+  ggplot(aes(x = reorder(artist, Bing_rate), y = Bing_rate, fill = highlight)) +
+  artist_highlight_bar()
+```
+
+```{r}
+fps_props %>%
+  highlight_artist("Taylor Swift") %>%
+  ggplot(aes(x = reorder(artist, NRC_rate), y = NRC_rate, fill = highlight)) +
+  artist_highlight_bar()
+```
+
+```{r}
+# fps_stand %>% group_by(artist) %>% summarise(AFINN_total = sum(AFINN), Bing_total = sum(Bing), NRC_total = sum(NRC)) %>% ungroup()
+```
+
+```{r}
+fps_stand %>%
+  ggplot(aes(AFINN)) +
+  geom_histogram(binwidth = 20)
+
+fps_stand %>%
+  ggplot(aes(Bing)) +
+  geom_histogram(binwidth = 10)
+
+fps_stand %>%
+  ggplot(aes(NRC)) +
+  geom_histogram(binwidth = 10)
+```
+
+```{r}
+fps_stand %>%
+  ggplot(aes(AFINN, color = artist)) +
+  geom_freqpoly(binwidth = 20)
+```
+
+```{r}
+fps_stand %>% 
+  mutate(AFINN_cdf = cume_dist(AFINN), Bing_cdf = cume_dist(Bing), NRC_cdf = cume_dist(NRC)) %>%
+  filter(AFINN_cdf < 0.05 & Bing_cdf < 0.05 & NRC_cdf < 0.05)
+```
+
+```{r}
+fps_stand %>% 
+  mutate(AFINN_cdf = cume_dist(AFINN), Bing_cdf = cume_dist(Bing), NRC_cdf = cume_dist(NRC)) %>%
+  filter(AFINN_cdf < 0.1 & Bing_cdf < 0.1 & NRC_cdf < 0.1) %>%
+  count(artist)
+```
+

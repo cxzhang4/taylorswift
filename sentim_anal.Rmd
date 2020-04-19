@@ -1,0 +1,384 @@
+---
+title: "Text Mining of Taylor Swift Lyrics"
+author: "Carson Zhang (cxzhang4)"
+date: "3/20/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(tidyverse)
+library(tidytext)
+library(gridExtra)
+
+library(dplyr)
+library(ggplot2)
+library(purrr)
+library(tibble)
+library(tidyr)
+library(broom)
+```
+
+```{r}
+ts_lyrics = read_csv("data/taylor_swift_lyrics.csv")
+ts_lyrics_tidy = ts_lyrics %>% unnest_tokens(word, lyric)
+```
+
+```{r}
+# albums = unique(ts_lyrics$album)
+# album_years = vector(mode = "list", length = length(albums))
+# 
+# names(album_years) = albums
+# 
+# album_years["Taylor Swift"] = 2006
+# album_years["Fearless"] = 2008
+# album_years["Speak Now"] = 2010
+# album_years["Red"] = 2012
+# album_years["1989"] = 2014
+# album_years["reputation"] = 2017
+```
+
+## Sentiment Analysis
+
+```{r}
+ts_afinn = ts_lyrics_tidy %>%
+  inner_join(get_sentiments("afinn")) %>%
+  group_by(index = album) %>%
+  summarise(sentiment = sum(value)) %>%
+  mutate(method = "AFINN")
+
+ts_bing_and_nrc = bind_rows(ts_lyrics_tidy %>%
+                              inner_join(get_sentiments("bing")) %>%
+                              mutate(method = "Bing"),
+                            ts_lyrics_tidy %>% 
+                              inner_join(get_sentiments("nrc")) %>%
+                                filter(sentiment %in% c("positive", "negative")) %>%
+                              mutate(method = "NRC")) %>%
+  count(method, index = album, sentiment) %>%
+  spread(sentiment, n, fill = 0) %>%
+  mutate(sentiment = positive - negative)
+
+albums_in_order = c("Taylor Swift", "Fearless", "Speak Now", "Red", "1989", "reputation")
+
+# order albums by release date
+ts_all_lexicons = bind_rows(ts_afinn, ts_bing_and_nrc) %>%
+  mutate(index, index = factor(index, levels = albums_in_order, ordered = TRUE)) %>%
+  arrange(index)
+```
+
+```{r}
+ts_all_lexicons %>%
+  ggplot(aes(index, sentiment, fill = method)) +
+  geom_col(show.legend = FALSE) + 
+  facet_wrap(~method, ncol = 1, scales = "free_y") +
+  ggtitle("Sentiment of Taylor Swift albums over time")
+```
+
+**NRC** agrees quite closely with **AFINN**. **Bing** gives quite different results.
+
+Overall consensus is that *Red* is the most positive. *1989* is the least positive (in fact, it is the only one that had an overall negative sentiment using the **Bing** lexicon).
+
+Let's drill down to the song level. We'll go album-by-album.
+
+```{r}
+get_album_lyrics = function(album_name) {
+  ts_lyrics %>% filter(album == album_name) %>% return()
+}
+
+album_lyrics = lapply(albums_in_order, get_album_lyrics)
+names(album_lyrics) = albums_in_order
+
+album_lyrics_tidy = lapply(album_lyrics, unnest_tokens, word, lyric)
+names(album_lyrics_tidy) = albums_in_order
+```
+
+```{r}
+calc_sentiments_by_song = function(album_tidy) {
+  sentiments_afinn = album_tidy %>%
+    inner_join(get_sentiments("afinn")) %>%
+    group_by(index = track_title) %>%
+    summarise(sentiment = sum(value)) %>%
+    mutate(method = "AFINN")
+  
+  sentiments_bing_and_nrc = bind_rows(album_tidy %>% 
+                                        inner_join(get_sentiments("bing")) %>%
+                                        mutate(method = "Bing"),
+                                      album_tidy %>%
+                                        inner_join(get_sentiments("nrc")) %>%
+                                        mutate(method = "NRC")) %>%
+    count(method, index = track_title, sentiment) %>%
+    spread(sentiment, n, fill = 0) %>%
+    mutate(sentiment = positive - negative)
+  
+  sentiments_all_lex = bind_rows(sentiments_afinn, sentiments_bing_and_nrc)
+  
+  sentiments_all_lex
+}
+
+plot_sentiments_by_song = function(sentiments_by_song) {
+  sentiment_plot <- sentiments_by_song %>%
+    ggplot(aes(index, sentiment, fill = method)) +
+    geom_col(show.legend = FALSE) + 
+    facet_wrap(~method, ncol = 1, scales = "free_y")
+  
+  sentiment_plot
+}
+```
+
+```{r}
+# album_sentiments_by_song = lapply(album_lyrics_tidy, calc_sentiments_by_song)
+# sentiment_plots = lapply(album_sentiments_by_song, plot_sentiments_by_song)
+
+# n_albums = length(albums_in_order)
+# n_col = floor(sqrt(n_albums))
+# 
+# grid.arrange(grobs = sentiment_plots, ncol = n_col)
+
+# album_lyrics_tidy[[6]] %>% calc_sentiments_by_song() %>% plot_sentiments_by_song()
+
+# split_album = function(album, max_group_size) {
+#   album_sections = album %>% 
+#     group_by(track_n %/% max_group_size) %>%
+#     nest %>%
+#     pull(data)
+#   
+#   album_sections
+# }
+# 
+# album_lyrics_tidy_split = lapply(album_lyrics_tidy, split_album, 3)
+
+all_songs_sents = lapply(album_lyrics_tidy, calc_sentiments_by_song) %>% bind_rows()
+
+plot_sent_measure = function(lex, all_sents) {
+  all_songs_lex = all_sents %>% filter(method == lex)
+  song_lex_sorted = sort(all_songs_lex$sentiment, index.return = TRUE)
+  
+  plot(1:length(song_lex_sorted$x), song_lex_sorted$x, main = lex)
+}
+
+lex_vec = c("AFINN", "Bing", "NRC")
+
+# par(mfrow = c(3, 1))
+lapply(lex_vec, plot_sent_measure, all_sents = all_songs_sents)
+```
+
+```{r}
+hist_sent_measure = function(lex, all_sents) {
+  all_songs_lex = all_sents %>% filter(method == lex)
+  song_lex_sorted = sort(all_songs_lex$sentiment, index.return = TRUE)
+  
+  hist(song_lex_sorted$x, main = lex)
+}
+
+lapply(lex_vec, hist_sent_measure, all_sents = all_songs_sents)
+```
+
+In all cases, we see an S-shaped curve. But there's a gap between the "middle" and the most negative songs. 
+
+```{r}
+neg_songs_nrc = all_songs_sents %>% filter(method == "NRC", sentiment < -10)
+neg_songs_afinn = all_songs_sents %>% filter(method == "AFINN", sentiment < -30)
+neg_songs_bing = all_songs_sents %>% filter(method == "Bing", sentiment < -30)
+
+very_neg_songs = bind_rows(neg_songs_nrc, neg_songs_afinn, neg_songs_bing) %>% select(index) %>% unique()
+very_neg_songs
+```
+
+```{r}
+bing_word_counts = ts_lyrics_tidy %>%
+  inner_join(get_sentiments("bing")) %>%
+  count(word, sentiment, sort = TRUE) %>%
+  ungroup()
+
+bing_word_counts %>%
+  group_by(sentiment) %>%
+  top_n(20) %>%
+  ungroup() %>%
+  mutate(word = reorder(word, n)) %>%
+  ggplot(aes(word, n, fill = sentiment)) +
+  geom_col(show.legend = FALSE) +
+  facet_wrap(~sentiment, scales = "free_y") +
+  labs(y = "Contribution to sentiment",
+       x = NULL) +
+  coord_flip()
+# 
+# nrc_joy = get_sentiments("nrc") %>%
+#   filter(sentiment == "joy")
+# 
+# nrc_disgust = get_sentiments("nrc") %>%
+#   filter(sentiment == "disgust")
+# 
+# ts_lyrics_tidy %>%
+#   inner_join(nrc_disgust) %>%
+#   count(word, sort = TRUE)
+```
+
+Should we add "shake" to `stop_words`?
+
+```{r}
+ts_lyrics_tidy %>%
+  filter(word == "shake") %>%
+  group_by(track_title) %>%
+  count()
+```
+
+This is why "Shake it Off" is so overwhelmingly negative. But is it really a negative song?
+
+But should we use absolute sentiment measures? Longer songs have more potential for extreme values (higher variance). So we can look at sentiment / length: a sort of "rate".
+
+```{r}
+song_word_counts = ts_lyrics_tidy %>%
+  group_by(track_title) %>%
+  count() %>%
+  ungroup()
+
+all_songs_sents_sorted = all_songs_sents %>% arrange(index)
+
+( ( all_songs_sents_sorted %>% filter(method == "AFINN") %>% select(index) )== (song_word_counts$track_title) ) %>% sum() == length(unique(song_word_counts$track_title))
+```
+
+Alternatively, we do a join - does not require sorting.
+
+```{r}
+all_sents_lengths = 
+  all_songs_sents %>% left_join(song_word_counts, by = c("index" = "track_title"))
+```
+
+```{r}
+all_sents_lengths = all_sents_lengths %>% 
+  mutate(rate = sentiment / n)
+
+all_sents_lengths
+```
+
+```{r}
+# plot(afinn_lengths$rate %>% sort())
+```
+
+```{r}
+# each song should be a single row
+# separate columns for each sentiment measure
+all_sents_lengths %>% pivot_wider(names_from = method, values_from = sentiment) -> all_sents_lengths_pivoted
+
+all_sents_lengths_pivoted
+```
+
+```{r}
+# all_songs_sents %>% filter(method == "AFINN") %>% pivot_wider(names_from = method, values_from = sentiment) -> afinn_lengths
+# all_songs_sents %>% filter(method == "Bing")  %>% pivot_wider(names_from = method, values_from = sentiment) -> bing_lengths
+# all_songs_sents %>% filter(method == "NRC")  %>% pivot_wider(names_from = method, values_from = sentiment) -> nrc_lengths
+
+all_sents_lengths %>% filter(method == "AFINN") %>% pivot_wider(names_from = method, values_from = rate) -> afinn_lengths
+all_sents_lengths %>% filter(method == "Bing")  %>% pivot_wider(names_from = method, values_from = rate) -> bing_lengths
+all_sents_lengths %>% filter(method == "NRC")  %>% pivot_wider(names_from = method, values_from = rate) -> nrc_lengths
+
+afinn_lengths %>% left_join(bing_lengths, by = "index") %>% left_join(nrc_lengths, by = "index") -> tidy_sents
+```
+
+So instead of eyeball-clustering, let's *actually* cluster songs by these measures. We can assess the 
+
+Hopefully a 3-cluster solution yields a breakdown similar to the one I've described: very negative, middle, very positive.
+
+```{r}
+# tidy_sents %>% select(AFINN, Bing, NRC) %>% kmeans(centers = 3) -> kclust_3
+
+tidy_sents %>% select(AFINN, Bing, NRC) %>% scale() -> tidy_just_sents_stand
+
+k_vals = 1:9
+
+kclusts <- tibble(k = 1:9) %>%
+  mutate(
+    kclust = map(k, ~kmeans(tidy_just_sents_stand, .x)),
+    tidied = map(kclust, tidy),
+    glanced = map(kclust, glance),
+    augmented = map(kclust, augment, tidy_just_sents_stand)
+  )
+
+kclusts
+```
+
+```{r}
+clusters <- kclusts %>%
+  unnest(tidied)
+
+assignments <- kclusts %>% 
+  unnest(augmented)
+
+clusterings <- kclusts %>%
+  unnest(glanced, .drop = TRUE)
+```
+
+```{r}
+ggplot(clusterings, aes(k, tot.withinss)) +
+  geom_line()
+```
+
+There are a few possible "elbows", but I'd say any `k` from 3 to 5 is reasonable. (this comment was made using raw sentiment values)
+
+Using "rates" makes `k` = 4 looks pretty good.
+
+Standardized: `k` = 4 looks good.
+
+```{r}
+kclust_4 = assignments %>% filter(k == 4)
+allSame <- function(x) length(unique(x)) == 1
+allSame(kclust_4$kclust)
+```
+
+```{r}
+kclust_4 %>% filter(kclust_4$kclust[[1]]$cluster == 3)
+clusters
+```
+
+
+Let's try a Gaussian mixture.
+
+
+```{r}
+library(mclust)
+```
+
+```{r}
+ts_gmm_BIC = mclustBIC(tidy_just_sents_stand)
+summary(ts_gmm_BIC)
+plot(ts_gmm_BIC)
+```
+
+GMM really prefers `k` = 2.
+
+```{r}
+
+```
+
+
+The line of reasoning:
+
+If an artist has more very-negative songs, then that artist is negative. (justify that this is a reasonable metric)
+
+Taylor Swift has more very-negative songs. (perform computations)
+
+Taylor Swift is a negative artist. (conclusion)
+
+```{r}
+library(reticulate)
+
+n_songs = ts_lyrics %>% 
+  select(track_title) %>% 
+  unique() %>% 
+  nrow()
+```
+
+Use clusters to define cutoffs (like we did above)
+
+Get someone else's library
+
+```{r}
+beyonce_lyrics = read_csv("lyrics_beyonce.csv")
+View(beyonce_lyrics)
+```
+
+
+
