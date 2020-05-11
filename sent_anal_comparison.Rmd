@@ -279,8 +279,11 @@ artist_song_counts = fps_stand_aug %>% count(artist)
 # cluster_2_artists = cluster_2_artists %>% mutate(highlight = ifelse(artist == "Taylor Swift", "yes", "no"))
 # cluster_3_artists = cluster_3_artists %>% mutate(highlight = ifelse(artist == "Taylor Swift", "yes", "no"))
 
-cluster_1_artists = cluster_1_artists %>% inner_join(artist_song_counts, by = "artist") %>% mutate(prop = n.x / n.y)
-cluster_1_artists = cluster_1_artists %>% mutate(highlight = ifelse(artist == "Taylor Swift", "yes", "no"))
+cluster_1_artists = cluster_1_artists %>% 
+  inner_join(artist_song_counts, by = "artist") %>% 
+  mutate(prop = n.x / n.y)
+cluster_1_artists = cluster_1_artists %>% 
+  mutate(highlight = ifelse(artist == "Taylor Swift", "yes", "no"))
 ```
 
 ```{r}
@@ -416,12 +419,16 @@ fps_stand %>%
 
 ```{r}
 fps_stand %>% 
-  mutate(AFINN_cdf = cume_dist(AFINN), Bing_cdf = cume_dist(Bing), NRC_cdf = cume_dist(NRC)) %>%
+  mutate(AFINN_cdf = cume_dist(AFINN), 
+         Bing_cdf = cume_dist(Bing), 
+         NRC_cdf = cume_dist(NRC)) %>%
   filter(AFINN_cdf < 0.1 & Bing_cdf < 0.1 & NRC_cdf < 0.1) %>%
   count(artist)
 
 less_point1_with_prop = fps_stand %>%
-  mutate(AFINN_cdf = cume_dist(AFINN), Bing_cdf = cume_dist(Bing), NRC_cdf = cume_dist(NRC)) %>%
+  mutate(AFINN_cdf = cume_dist(AFINN), 
+         Bing_cdf = cume_dist(Bing), 
+         NRC_cdf = cume_dist(NRC)) %>%
   filter(AFINN_cdf < 0.1 & Bing_cdf < 0.1 & NRC_cdf < 0.1) %>%
   count(artist) %>%
   inner_join(artist_song_counts, by = "artist") %>%
