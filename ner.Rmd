@@ -1,0 +1,78 @@
+---
+title: "Aspect-Level"
+author: "Carson Zhang (cxzhang4)"
+date: "5/6/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+# library(tidyverse)
+# # Packages for manipulating data
+# library(stringr)
+# library(lubridate)
+# # Packages for NLP
+# library(NLP)
+# # install.packages("openNLPmodels.en",repos = "http://datacube.wu.ac.at/", type = "source")
+# library(openNLP)
+# library(cleanNLP)
+# cnlp_download_corenlp() # install the coreNLP Java back end 'CoreNLP' <http://stanfordnlp.github.io/CoreNLP/>
+# # Packages for Python interface
+# # Packages for Python
+# library(reticulate)
+# use_virtualenv("r-reticulate")
+# import("stanfordnlp")
+```
+
+```{r}
+# # First set the executable. Note this needs to be set before any initialising
+# use_python("/Users/carsonzhang/anaconda3/bin/python") 
+# # py_available(initialize = TRUE) # should give TRUE
+# # Check Python configuration
+# py_config()
+# 
+# # virtualenv_install("r-reticulate", "stanfordnlp")
+```
+
+```{r}
+# cnlp_init_spacy()
+```
+
+```{r}
+library(spacyr)
+library(tidyverse)
+```
+
+```{r}
+# use_python("/Users/carsonzhang/anaconda3/bin/python")
+# spacy_uninstall()
+# spacy_install()
+# remove.packages("Rcpp")
+# remove.packages("reticulate")
+# install.packages("Rcpp")
+# install.packages("reticulate")
+# spacy_uninstall()
+spacy_initialize()
+
+# fps_lyrics_tif = read_csv("data/female_pop_star_lyrics.csv") %>% 
+#   tibble::rowid_to_column() %>% 
+#   mutate(doc_id = rowid, text = lyric) 
+
+# write_csv(fps_lyrics_tif, "data/fps_lyrics_tif.csv")
+
+# py_install("spaCy")
+
+spacy_extract_entity(fps_lyrics_tif)
+```
+
+```{r}
+# Sys.which("python")
+# Sys.which("python"
+```
+
+
+
+

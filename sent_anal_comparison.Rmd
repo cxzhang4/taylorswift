@@ -243,6 +243,8 @@ There are two interesting clusters (changes every time I run this). Cluster 2 is
 
 Let's measure the proportion of discography in each of these clusters.
 
+**Cluster 1 is extremely negative**
+
 ```{r}
 kclust_5_aug_tbl = kclusts_fps$augmented[[4]]
 
@@ -250,12 +252,14 @@ fps_stand_aug = fps_stand %>% mutate(cluster = kclust_5_aug_tbl$.cluster)
 ```
 
 ```{r}
-fps_stand_aug %>% filter(cluster %in% c(4)) %>% count(artist)
+fps_stand_aug %>% filter(cluster %in% c(1)) %>% count(artist)
 ```
 
 ```{r}
 cluster_2_artists = fps_stand_aug %>% filter(cluster == 2) %>% count(artist)
 cluster_3_artists = fps_stand_aug %>% filter(cluster == 3) %>% count(artist)
+
+cluster_1_artists = fps_stand_aug %>% filter(cluster == 1) %>% count(artist)
 ```
 
 
@@ -269,11 +273,14 @@ artist_song_counts = fps_stand_aug %>% count(artist)
 ```
 
 ```{r}
-cluster_2_artists = cluster_2_artists %>% inner_join(artist_song_counts, by = "artist") %>% mutate(prop = n.x / n.y)
-cluster_3_artists = cluster_3_artists %>% inner_join(artist_song_counts, by = "artist") %>% mutate(prop = n.x / n.y)
+# cluster_2_artists = cluster_2_artists %>% inner_join(artist_song_counts, by = "artist") %>% mutate(prop = n.x / n.y)
+# cluster_3_artists = cluster_3_artists %>% inner_join(artist_song_counts, by = "artist") %>% mutate(prop = n.x / n.y)
+# 
+# cluster_2_artists = cluster_2_artists %>% mutate(highlight = ifelse(artist == "Taylor Swift", "yes", "no"))
+# cluster_3_artists = cluster_3_artists %>% mutate(highlight = ifelse(artist == "Taylor Swift", "yes", "no"))
 
-cluster_2_artists = cluster_2_artists %>% mutate(highlight = ifelse(artist == "Taylor Swift", "yes", "no"))
-cluster_3_artists = cluster_3_artists %>% mutate(highlight = ifelse(artist == "Taylor Swift", "yes", "no"))
+cluster_1_artists = cluster_1_artists %>% inner_join(artist_song_counts, by = "artist") %>% mutate(prop = n.x / n.y)
+cluster_1_artists = cluster_1_artists %>% mutate(highlight = ifelse(artist == "Taylor Swift", "yes", "no"))
 ```
 
 ```{r}
@@ -313,6 +320,14 @@ n_aes = aes(x = reorder(artist, n.x), y = n.x, fill = highlight)
 ```
 
 ```{r}
+cluster_1_artists %>%
+  ggplot(prop_aes) +
+  artist_highlight_bar() +
+  ggtitle("Artists ranked by proportion of extremely negative songs")
+```
+
+
+```{r}
 fps_totals = fps_stand %>% 
   group_by(artist) %>% 
   summarise(AFINN_total = sum(AFINN), Bing_total = sum(Bing), NRC_total = sum(NRC))
@@ -334,21 +349,24 @@ highlight_artist = function(df, artist_name) {
 fps_props %>%
   highlight_artist("Taylor Swift") %>%
   ggplot(aes(x = reorder(artist, AFINN_rate), y = AFINN_rate, fill = highlight)) +
-  artist_highlight_bar()
+  artist_highlight_bar() +
+  ggtitle("Artists ranked by AFINN (standardized)")
 ```
 
 ```{r}
 fps_props %>%
   highlight_artist("Taylor Swift") %>%
   ggplot(aes(x = reorder(artist, Bing_rate), y = Bing_rate, fill = highlight)) +
-  artist_highlight_bar()
+  artist_highlight_bar() +
+  ggtitle("Artists ranked by Bing (standardized)")
 ```
 
 ```{r}
 fps_props %>%
   highlight_artist("Taylor Swift") %>%
   ggplot(aes(x = reorder(artist, NRC_rate), y = NRC_rate, fill = highlight)) +
-  artist_highlight_bar()
+  artist_highlight_bar() +
+  ggtitle("Artists ranked by NRC (standardized)")
 ```
 
 ```{r}
@@ -372,7 +390,22 @@ fps_stand %>%
 ```{r}
 fps_stand %>%
   ggplot(aes(AFINN, color = artist)) +
-  geom_freqpoly(binwidth = 20)
+  geom_freqpoly(binwidth = 20) +
+  ggtitle("AFINN distribution by artist")
+```
+
+```{r}
+fps_stand %>%
+  ggplot(aes(Bing, color = artist)) +
+  geom_freqpoly(binwidth = 20) +
+  ggtitle("Bing distribution by artist")
+```
+
+```{r}
+fps_stand %>%
+  ggplot(aes(NRC, color = artist)) +
+  geom_freqpoly(binwidth = 20) +
+  ggtitle("NRC distribution by artist")
 ```
 
 ```{r}
@@ -386,5 +419,185 @@ fps_stand %>%
   mutate(AFINN_cdf = cume_dist(AFINN), Bing_cdf = cume_dist(Bing), NRC_cdf = cume_dist(NRC)) %>%
   filter(AFINN_cdf < 0.1 & Bing_cdf < 0.1 & NRC_cdf < 0.1) %>%
   count(artist)
+
+less_point1_with_prop = fps_stand %>%
+  mutate(AFINN_cdf = cume_dist(AFINN), Bing_cdf = cume_dist(Bing), NRC_cdf = cume_dist(NRC)) %>%
+  filter(AFINN_cdf < 0.1 & Bing_cdf < 0.1 & NRC_cdf < 0.1) %>%
+  count(artist) %>%
+  inner_join(artist_song_counts, by = "artist") %>%
+  mutate(prop = n.x / n.y )%>% 
+  mutate(highlight = ifelse(artist == "Taylor Swift", "yes", "no"))
+```
+
+```{r}
+fps_stand %>%
+  mutate(AFINN_cdf = cume_dist(AFINN), Bing_cdf = cume_dist(Bing), NRC_cdf = cume_dist(NRC)) %>%
+  filter(AFINN_cdf < 0.05 & Bing_cdf < 0.05 & NRC_cdf < 0.05) %>%
+  count(artist)
+
+less_alpha_with_prop = fps_stand %>%
+  mutate(AFINN_cdf = cume_dist(AFINN), Bing_cdf = cume_dist(Bing), NRC_cdf = cume_dist(NRC)) %>%
+  filter(AFINN_cdf < 0.05 & Bing_cdf < 0.05 & NRC_cdf < 0.05) %>%
+  count(artist) %>%
+  inner_join(artist_song_counts, by = "artist") %>%
+  mutate(prop = n.x / n.y )%>% 
+  mutate(highlight = ifelse(artist == "Taylor Swift", "yes", "no"))
+```
+
+
+```{r}
+less_point1_with_prop %>%
+  ggplot(prop_aes) +
+  artist_highlight_bar() +
+  ggtitle("Artists ranked by proportion of very negative songs (top 10% in all dicts)")
+```
+
+```{r}
+less_alpha_with_prop %>% 
+  ggplot(prop_aes) +
+  artist_highlight_bar() +
+  ggtitle("Artists ranked by proportion of very negative songs (top 5% in all dicts)")
+```
+
+
+```{r}
+artist_names = fps_stand$artist %>% unique()
+other_artists = artist_names[!(artist_names == "Taylor Swift")]
+
+# for (sentim_dict in c("AFINN", "Bing", "NRC")) {
+#   ts_sent = fps_stand %>% filter(artist == "Taylor Swift")$AFINN
+#   for (other_artist in other_artists) {
+#     other_artist_sent = fps_stand %>% filter(artist == all_of(other_artist)) 
+#     t.test(fps_stand %>% filter(artist == ""))
+#   }
+# }
+
+ts_afinn = ( fps_stand %>% filter(artist == "Taylor Swift") )$AFINN
+afinn_pvals = vector("numeric", length = length(other_artists))
+i = 1
+for (other_artist in other_artists) {
+  other_artist_afinn = ( fps_stand %>% filter(artist == other_artist) )$AFINN
+  
+  test_result = t.test(ts_afinn, other_artist_afinn)
+  print(test_result$p.value)
+  
+  afinn_pvals[i] = test_result$p.value
+  i = i + 1
+}
+
+# ts_bing = fps_stand %>% filter(artist == "Taylor Swift") %>% select(Bing)
+# bey_bing = fps_stand %>% filter(artist == "Beyonce") %>% select(Bing)
+# 
+# t.test((fps_stand %>% filter(artist == "Taylor Swift"))$Bing, (fps_stand %>% filter(artist == "Beyonce"))$Bing)
+```
+
+```{r}
+ts_bing = ( fps_stand %>% filter(artist == "Taylor Swift") )$Bing
+bing_pvals = vector("numeric", length = length(other_artists))
+i = 1
+for (other_artist in other_artists) {
+  other_artist_bing = ( fps_stand %>% filter(artist == other_artist) )$Bing
+  
+  test_result = t.test(ts_bing, other_artist_bing)
+  print(test_result$p.value)
+  
+  bing_pvals[i] = test_result$p.value
+  i = i + 1
+}
+```
+
+```{r}
+ts_NRC = ( fps_stand %>% filter(artist == "Taylor Swift") )$NRC
+NRC_pvals = vector("numeric", length = length(other_artists))
+i = 1
+for (other_artist in other_artists) {
+  other_artist_NRC = ( fps_stand %>% filter(artist == other_artist) )$NRC
+  
+  test_result = t.test(ts_NRC, other_artist_NRC)
+  print(test_result$p.value)
+  
+  NRC_pvals[i] = test_result$p.value
+  i = i + 1
+}
+```
+
+```{r}
+hist(afinn_pvals)
+
+afinn_sig_idx = afinn_pvals < 0.05
+
+mean(afinn_sig_idx)
+
+sum(afinn_sig_idx)
+```
+
+```{r}
+hist(bing_pvals)
+
+bing_sig_idx = bing_pvals < 0.05
+
+mean(bing_sig_idx)
+
+sum(bing_sig_idx)
+```
+
+```{r}
+hist(NRC_pvals)
+
+NRC_sig_idx = NRC_pvals < 0.05
+
+mean(NRC_sig_idx)
+
+sum(NRC_sig_idx)
+```
+
+```{r}
+sent_pvals = data.frame(AFINN = afinn_pvals, 
+                        Bing = bing_pvals, 
+                        NRC = NRC_pvals) %>% 
+  as_tibble()
+
+ggplot(sent_pvals, aes(AFINN)) +
+  geom_histogram(binwidth = 0.05) +
+  ggtitle("AFINN p-values")
+
+ggplot(sent_pvals, aes(Bing)) +
+  geom_histogram(binwidth = 0.05) +
+  ggtitle("Bing p-values")
+
+ggplot(sent_pvals, aes(NRC)) +
+  geom_histogram(binwidth = 0.05) +
+  ggtitle("NRC p-values")
+```
+
+```{r}
+afinn_sig_idx
+bing_sig_idx
+NRC_sig_idx
+```
+
+```{r}
+sent_pvals %>% View()
+```
+
+```{r}
+other_artists[2]
+other_artists[5]
+```
+
+
+```{r}
+# library(rtweet)
+# tweets_ts = search_tweets(q = "Taylor Swift", n = 1000, lang = "en", include_rts = FALSE)
+# tweets_bey = search_tweets(q = "Beyonce", n = 1000, lang = "en", include_rts = FALSE)
+```
+
+```{r}
+# clean_tweets = function(tweets) {
+#   gsub(x = tweets_hiv$text, pattern = "[0-9]+", replacement = "") %>% return()
+# }
+# 
+# clean_tweets(tweets_ts)
+# clean_tweets(tweets_bey)
 ```
 
