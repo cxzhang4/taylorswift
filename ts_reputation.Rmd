@@ -237,6 +237,10 @@ highlight_artist = function(df, artist_name) {
 
 ## Introduction
 
+In this paper, we apply basic sentiment analysis to evaluate the veracity of the related belief that Taylor Swift's lyrics are anomalously negative.
+
+
+
 ## Method
 
 ### Data collection
@@ -263,6 +267,10 @@ As collected, the dataset had one song line per row. Because we are performing s
 Notably, no stop words were removed. This is because the existence of stop words is already accounted for by the sentiment dictionaries: if a word does not indicate a sentiment, it simply will not exist in the dictionary, and therefore will not affect the sentiment of the document.
 
 ### Metrics for analysis
+
+We perform sentiment analysis on this corpus. We compute the sentiment of a body of text with a sentiment dictionary, which contains a numeric measure of how positive or negative each emotion word is. These values are summed over the entirety of the document to obtain a net sentiment value. 
+
+We use three sentiment dictionaries: AFINN, Bing, and NRC. This allows us to evaluate the consistency of our results: if we observe a trend across multiple dictionaries, we can be more confident that it is true.
 
 We identify three major ways to evaluate whether the belief is reasonable.
 
@@ -442,26 +450,35 @@ for (other_artist in other_artists) {
 ```
 
 ```{r}
+# logical vector: each entry is an artist Taylor Swift is being compared to
+# true if p-value < 0.05
 afinn_sig_idx = afinn_pvals < 0.05
 
+print("Proportion of artists significantly different from Taylor Swift: AFINN")
 mean(afinn_sig_idx)
-
+print("Number of artists significantly different from Taylor Swift: AFINN")
 sum(afinn_sig_idx)
 ```
 
 ```{r}
+# logical vector: each entry is an artist Taylor Swift is being compared to
+# true if p-value < 0.05
 bing_sig_idx = bing_pvals < 0.05
 
+print("Proportion of artists significantly different from Taylor Swift: Bing")
 mean(bing_sig_idx)
-
+print("Number of artists significantly different from Taylor Swift: Bing")
 sum(bing_sig_idx)
 ```
 
 ```{r}
+# logical vector: each entry is an artist Taylor Swift is being compared to
+# true if p-value < 0.05
 NRC_sig_idx = NRC_pvals < 0.05
 
+print("Proportion of artists significantly different from Taylor Swift: NRC")
 mean(NRC_sig_idx)
-
+print("Number of artists significantly different from Taylor Swift: NRC")
 sum(NRC_sig_idx)
 ```
 
@@ -497,6 +514,13 @@ sent_pvals < 0.05
 ```{r}
 sent_pvals < 0.1
 ```
+
+Two artists stick out:
+- Nicki Minaj. But she is consistently more negative than all of the other artists in this dataset.
+
+- Beyonce. But she is consistently one of the most positive artists in this dataset: top 3 in terms of overall sentiment for all dictionaries.
+
+Taylor Swift is only consistently different from a particularly negative and a particularly positive artists. This suggests that she is typical within this population. Therefore, this result does not support the original belief.
 
 ## cite
 
