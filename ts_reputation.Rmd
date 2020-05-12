@@ -235,6 +235,28 @@ highlight_artist = function(df, artist_name) {
 }
 ```
 
+## Introduction
+
+## Method
+
+### Data collection and preprocessing
+
+We define the population that Taylor Swift comes from as popular female artists.
+
+Specifically, an artist is sufficiently popular if they have sold over 200 million records. We analyze popular artists because we hypothesize that the belief arises from overfitting based on a small number of popular songs. Therefore, we want the artists in our population to be reasonable candidates for the same belief and belief-generating process. We choose 200 million as the cutoff because that is the lower bound of the group that Taylor Swift is in on Wikipedia's list of best-selling musical artists.
+
+We choose to only analyze female artists because I believe that women are perceived differently from men. I claim tbat societal perceptions of momen's roles in romantic relationships are different from men's roles, so we restrict our analysis to women in order to control for these differences.
+
+This results in 
+
+Lyrics were collected from Genius using the “genius” R package. Genius was chosen as a data source because of its frequent collaborations with popular artists, suggesting that it contains at least some official lyrics, and not simply crowdsourced lyrics.
+
+As collected, the dataset had one song line per row. Because we are performing sentiment analysis at the word level, tokens were unnested so that each row contained a single word.
+
+Notably, no stop words were removed. This is because the existence of stop words is already accounted for by the sentiment dictionaries: if a word does not indicate a sentiment, it simply will not exist in the dictionary, and therefore will not affect the sentiment of the document.
+
+###
+
 ```{r}
 fps_props %>%
   highlight_artist("Taylor Swift") %>%
@@ -426,4 +448,10 @@ options(scipen = 99999)
 
 sent_pvals
 ```
+
+## cite
+
+Wikipedia
+
+Hart et al
 
