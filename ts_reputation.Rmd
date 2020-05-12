@@ -1,8 +1,9 @@
 ---
-title: "Taylor's Reputation"
+title: "Taylor's Reputation: Sentiment Analysis to Determine Selective Exposure to Information about Taylor Swift's Negativity"
 author: "Carson Zhang (cxzhang4)"
 date: "5/11/2020"
-output: html_document
+output:
+  word_document: default
 ---
 
 ```{r setup, include=FALSE}
@@ -135,7 +136,8 @@ female_pop_star_lyrics = read_csv("data/female_pop_star_lyrics.csv")
 
 # pre-processing: each row now contains a single word because
 # we perform basic sentiment analysis at the word level
-fps_lyrics_tidy = female_pop_star_lyrics %>% unnest_tokens(word, lyric)
+fps_lyrics_tidy = female_pop_star_lyrics %>% 
+  unnest_tokens(word, lyric)
 ```
 
 ```{r}
@@ -284,11 +286,144 @@ songs_less_point1 = fps_stand %>%
   filter(AFINN_cdf < 0.1 & Bing_cdf < 0.1 & NRC_cdf < 0.1)
 ```
 
+```{r}
+less_point05_with_prop = fps_stand %>%
+  mutate(AFINN_cdf = cume_dist(AFINN), 
+         Bing_cdf = cume_dist(Bing), 
+         NRC_cdf = cume_dist(NRC)) %>%
+  filter(AFINN_cdf < 0.05 & Bing_cdf < 0.05 & NRC_cdf < 0.05) %>%
+  count(artist) %>%
+  inner_join(artist_song_counts, by = "artist") %>%
+  mutate(prop = n.x / n.y )%>% 
+  mutate(highlight = ifelse(artist == "Taylor Swift", "yes", "no"))
 
+less_point1_with_prop = fps_stand %>%
+  mutate(AFINN_cdf = cume_dist(AFINN), 
+         Bing_cdf = cume_dist(Bing), 
+         NRC_cdf = cume_dist(NRC)) %>%
+  filter(AFINN_cdf < 0.1 & Bing_cdf < 0.1 & NRC_cdf < 0.1) %>%
+  count(artist) %>%
+  inner_join(artist_song_counts, by = "artist") %>%
+  mutate(prop = n.x / n.y )%>% 
+  mutate(highlight = ifelse(artist == "Taylor Swift", "yes", "no"))
+```
 
+```{r}
+less_point05_with_prop %>%
+  ggplot(prop_aes) +
+  artist_highlight_bar() +
+  ggtitle("Artists ranked by proportion of very negative songs (top 10% in all dicts)")
 
+less_point1_with_prop %>%
+  ggplot(prop_aes) +
+  artist_highlight_bar() +
+  ggtitle("Artists ranked by proportion of very negative songs (top 10% in all dicts)")
+```
 
+## T-tests
 
+```{r}
+artist_names = fps_stand$artist %>% unique()
+other_artists = artist_names[!(artist_names == "Taylor Swift")]
+```
 
+```{r}
+ts_afinn = ( fps_stand %>% filter(artist == "Taylor Swift") )$AFINN
+afinn_pvals = vector("numeric", length = length(other_artists))
+i = 1
+for (other_artist in other_artists) {
+  other_artist_afinn = ( fps_stand %>% filter(artist == other_artist) )$AFINN
+  
+  test_result = t.test(ts_afinn, other_artist_afinn)
+  print(test_result$p.value)
+  
+  afinn_pvals[i] = test_result$p.value
+  i = i + 1
+}
+```
 
+```{r}
+ts_bing = ( fps_stand %>% filter(artist == "Taylor Swift") )$Bing
+bing_pvals = vector("numeric", length = length(other_artists))
+i = 1
+for (other_artist in other_artists) {
+  other_artist_bing = ( fps_stand %>% filter(artist == other_artist) )$Bing
+  
+  test_result = t.test(ts_bing, other_artist_bing)
+  print(test_result$p.value)
+  
+  bing_pvals[i] = test_result$p.value
+  i = i + 1
+}
+```
+
+```{r}
+ts_NRC = ( fps_stand %>% filter(artist == "Taylor Swift") )$NRC
+NRC_pvals = vector("numeric", length = length(other_artists))
+i = 1
+for (other_artist in other_artists) {
+  other_artist_NRC = ( fps_stand %>% filter(artist == other_artist) )$NRC
+  
+  test_result = t.test(ts_NRC, other_artist_NRC)
+  print(test_result$p.value)
+  
+  NRC_pvals[i] = test_result$p.value
+  i = i + 1
+}
+```
+
+```{r}
+hist(afinn_pvals)
+
+afinn_sig_idx = afinn_pvals < 0.1
+
+mean(afinn_sig_idx)
+
+sum(afinn_sig_idx)
+```
+
+```{r}
+hist(bing_pvals)
+
+bing_sig_idx = bing_pvals < 0.1
+
+mean(bing_sig_idx)
+
+sum(bing_sig_idx)
+```
+
+```{r}
+hist(NRC_pvals)
+
+NRC_sig_idx = NRC_pvals < 0.1
+
+mean(NRC_sig_idx)
+
+sum(NRC_sig_idx)
+```
+
+```{r}
+afinn_sig_idx
+bing_sig_idx
+NRC_sig_idx
+```
+
+```{r}
+sent_pvals = data.frame(AFINN = afinn_pvals, 
+                        Bing = bing_pvals, 
+                        NRC = NRC_pvals) %>% 
+  as_tibble()
+
+sent_pvals = data.frame(AFINN = afinn_pvals, 
+                        Bing = bing_pvals, 
+                        NRC = NRC_pvals, 
+                        row.names = other_artists)
+```
+
+```{r}
+# print values without scientific notation
+options(scipen = 99999)
+
+sent_pvals
+```
 
