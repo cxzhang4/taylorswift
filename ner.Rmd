@@ -55,24 +55,71 @@ library(tidyverse)
 # install.packages("Rcpp")
 # install.packages("reticulate")
 # spacy_uninstall()
-spacy_initialize()
 
-# fps_lyrics_tif = read_csv("data/female_pop_star_lyrics.csv") %>% 
-#   tibble::rowid_to_column() %>% 
-#   mutate(doc_id = rowid, text = lyric) 
+spacy_initialize(model = "en_core_web_sm")
+
+fps_lyrics_tif = read_csv("data/female_pop_star_lyrics.csv") %>%
+  tibble::rowid_to_column() %>%
+  mutate(doc_id = rowid, text = lyric) %>%
+  mutate(doc_id = as.character(doc_id))
+
 
 # write_csv(fps_lyrics_tif, "data/fps_lyrics_tif.csv")
 
 # py_install("spaCy")
 
-spacy_extract_entity(fps_lyrics_tif)
+library(tif)
+tif_is_corpus_df(fps_lyrics_tif)
+
+fps_parsed = spacy_parse(fps_lyrics_tif, tag = TRUE, entity = TRUE, 
+                         lemma = FALSE, nounphrase = TRUE)
 ```
+
+```{r}
+nounphrase_extract(fps_parsed)
+```
+
+Need to have df where 1 row is 1 song
 
 ```{r}
 # Sys.which("python")
 # Sys.which("python"
 ```
 
+```{r}
 
+```
+
+```{r}
+dj = fps_lyrics_tif %>% 
+  filter(track_title == "Dear John")
+
+dj %>%
+  summarise(whole_song = paste(lyric, collapse = '. '))
+```
+
+```{r}
+ts_lyrics = fps_lyrics_tif %>% 
+  filter(artist == "Taylor Swift")
+
+# good! need to convert to TIF
+# decide how to separate
+ts_songs = ts_lyrics %>% 
+  group_by(album, track_n, track_title, artist) %>%
+  summarise(whole_song = paste(lyric, collapse = ' '))
+
+ts_songs_tif = ts_songs %>% 
+  rowid_to_column() %>%
+  mutate(doc_id = as.character(rowid), text = whole_song)
+```
+
+```{r}
+ts_parsed = spacy_parse(ts_songs_tif, tag = TRUE, entity = TRUE, 
+                         lemma = FALSE, nounphrase = TRUE)
+```
+
+```{r}
+ts_parsed = 
+```
 
 
